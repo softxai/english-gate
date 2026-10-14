@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>单词魔境 · English Gate</title>
+<link rel="stylesheet" href="css/style.css">
+<!-- 网络字体（可选）：离线时自动退回系统字体，不影响游戏 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fredoka:wght@500;600;700&family=ZCOOL+XiaoWei&display=swap" media="print" onload="this.media='all'">
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+  <div id="shade" class="veil"></div>
+
+  <!-- 标题 -->
+  <section class="screen" id="scr-title">
+    <div class="logo">
+      <div class="logo-en">ENGLISH GATE</div>
+      <h1 class="logo-zh">单词魔境</h1>
+      <div class="logo-tag">击败怪兽 · 征服单词</div>
+    </div>
+    <div class="menu">
+      <button class="btn primary big" data-go="map">开始冒险</button>
+      <div class="menu-row">
+        <button class="btn" data-go="banks">📚 词库</button>
+        <button class="btn" data-go="book">📖 错词本</button>
+        <button class="btn" data-go="bestiary">👾 图鉴</button>
+        <button class="btn" data-act="settings">⚙ 设置</button>
+      </div>
+    </div>
+    <div class="title-foot">键盘：数字键 1–6 选答案 · Q / W / E 技能 · 空格 终极魔法 · Esc 暂停 ｜ 口语关：空格 开始 / 结束回答 · Enter 继续 ｜ 听力关：1–3 选答案 · Enter 提交</div>
+  </section>
+
+  <!-- 场景选择 -->
+  <section class="screen" id="scr-map">
+    <div class="topbar">
+      <button class="btn icon" data-go="title" aria-label="返回">‹</button>
+      <div class="grow"><h2>选择冒险场景</h2><div class="sub">六个单词场景各配一套词库（进入后可以更换），外加 PET 口语和 PET 听力两个场景</div></div>
+      <div class="right"><button class="btn small" data-go="banks">📚 词库管理</button></div>
+    </div>
+    <div class="scene-list scroll" id="scene-list"></div>
+  </section>
+
+  <!-- 关卡选择 -->
+  <section class="screen" id="scr-levels">
+    <div class="topbar">
+      <button class="btn icon" data-go="map" aria-label="返回">‹</button>
+      <div class="grow"><h2 id="lv-title"></h2><div class="sub" id="lv-desc"></div></div>
+      <div class="right"><label class="bank-pick">本场景词库 <select id="lv-bank"></select></label></div>
+    </div>
+    <div class="lv-body">
+      <div class="lv-list scroll" id="lv-list"></div>
+      <aside class="lv-info scroll" id="lv-info"></aside>
+    </div>
+  </section>
+
+  <!-- 战斗 -->
+  <section class="screen" id="scr-battle">
+    <div class="hud">
+      <div class="hud-box hud-hero">
+        <div class="hud-col">
+          <div class="hud-name">小魔法师</div>
+          <div class="bar-hp" id="hp-bar"><i id="hp-fill"></i><b id="hp-text"></b></div>
+          <div class="mana" id="mana" title="魔力：答对一题 +1，用来施放技能"></div>
+        </div>
+      </div>
+      <div class="hud-mid">
+        <div class="hud-level" id="hud-level"></div>
+        <div class="dots" id="hud-dots"></div>
+        <div class="hud-score">★ <span id="hud-score">0</span></div>
+      </div>
+      <div class="hud-box hud-mon">
+        <div class="hud-col">
+          <div class="hud-name" id="mon-name"></div>
+          <div class="pips" id="mon-hp"></div>
+          <div class="traits" id="mon-traits"></div>
+        </div>
+      </div>
+      <button class="btn icon" id="btn-pause" aria-label="暂停">Ⅱ</button>
+    </div>
+    <div class="combo" id="combo"></div>
+    <div class="review" id="review"></div>
+    <!-- 口语关：题板（考官的问题 / 图片 / 讨论选项）和每题的反馈卡 -->
+    <div class="sp-board" id="sp-board"></div>
+    <div class="sp-card" id="sp-card"></div>
+    <div class="panel" id="panel">
+      <div class="timer" id="timer"><i id="timer-fill"></i></div>
+      <div class="prompt" id="prompt"></div>
+      <div class="opts" id="opts"></div>
+      <!-- 口语关的作答区 -->
+      <div class="speak" id="speak">
+        <button class="sp-mic" data-sp="mic" aria-label="开始或结束回答" title="开始 / 结束回答（空格）"><i id="sp-ring"></i><span id="sp-ico">🎙</span></button>
+        <div class="sp-mid">
+          <div class="sp-status" id="sp-status"></div>
+          <div class="sp-text" id="sp-text"></div>
+          <textarea class="sp-type" id="sp-type" rows="2" spellcheck="false" autocomplete="off" placeholder="Type your answer in English, then press Enter"></textarea>
+          <div class="sp-meter" title="魔力充能：说得越完整，法术越强"><i id="sp-power"></i></div>
+          <div class="sp-chips" id="sp-chips"></div>
+        </div>
+        <div class="sp-side">
+          <button class="btn small" data-sp="hint" id="sp-hintbtn">💡 提示 <kbd>H</kbd></button>
+          <button class="btn small" data-sp="replay">🔊 重听 <kbd>R</kbd></button>
+          <button class="btn small" data-sp="mode" id="sp-modebtn" title="切换作答方式：语音识别 / 录音自评 / 打字"></button>
+        </div>
+      </div>
+      <!-- 听力关的播放区（题目和选项在上面的题板里） -->
+      <div class="listen" id="listen">
+        <button class="ls-play" data-ls="play" aria-label="暂停或继续播放" title="暂停 / 继续（空格）"><span id="ls-ico">⏸</span></button>
+        <div class="ls-mid">
+          <div class="ls-status" id="ls-status"></div>
+          <div class="ls-sub" id="ls-sub"></div>
+          <div class="ls-dots" id="ls-dots"></div>
+        </div>
+        <div class="ls-side">
+          <button class="btn small" data-ls="sub" id="ls-subbtn" title="练习关可以开字幕">💬 字幕 <kbd>T</kbd></button>
+          <button class="btn small" data-ls="again" id="ls-again">🔁 再听一遍 <kbd>R</kbd></button>
+          <button class="btn small primary" data-ls="submit" id="ls-submit">提交 <kbd>Enter</kbd></button>
+        </div>
+      </div>
+      <div class="skills">
+        <button class="skill" data-skill="hint" title="洞察：排除一半以上的错误选项（2 魔力）"><span class="ico">🔍</span><span class="nm">洞察</span><span class="cost">2</span><kbd>Q</kbd></button>
+        <button class="skill" data-skill="freeze" title="时停：冻结倒计时 6 秒（2 魔力）"><span class="ico">⏳</span><span class="nm">时停</span><span class="cost">2</span><kbd>W</kbd></button>
+        <button class="skill" data-skill="heal" title="治愈：恢复 30 生命并解毒（3 魔力）"><span class="ico">💚</span><span class="nm">治愈</span><span class="cost">3</span><kbd>E</kbd></button>
+        <button class="ultbtn" id="btn-ult" title="终极魔法：连续答对会积攒能量，满了以后可以释放"><i id="ult-fill"></i><span>终极魔法</span><kbd>空格</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 词库 -->
+  <section class="screen" id="scr-banks">
+    <div class="topbar">
+      <button class="btn icon" data-go="back" aria-label="返回">‹</button>
+      <div class="grow"><h2>词库</h2><div class="sub">内置 G5 → GRE 六套分级词库和完整的 PET 词库，也可以导入自己的词库并分配给任意场景</div></div>
+      <div class="right">
+        <button class="btn small" data-act="template">词库模板</button>
+        <button class="btn small primary" data-act="import">＋ 导入词库</button>
+      </div>
+    </div>
+    <div class="banks-body">
+      <div class="pane scroll">
+        <h4>场 景 词 库 分 配</h4>
+        <div class="assign" id="bank-assign"></div>
+        <h4 style="margin-top:6px">全 部 词 库</h4>
+        <div id="bank-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="pane" id="bank-detail"></div>
+    </div>
+  </section>
+
+  <!-- 错词本 -->
+  <section class="screen" id="scr-book">
+    <div class="topbar">
+      <button class="btn icon" data-go="back" aria-label="返回">‹</button>
+      <div class="grow"><h2>错词本</h2><div class="sub">答错的单词会记在这里，连续答对两次后自动移出</div></div>
+      <div class="right"><button class="btn small primary" data-act="practice">⚔ 错词试炼</button></div>
+    </div>
+    <div class="best-body scroll"><div class="word-list" id="book-list"></div></div>
+  </section>
+
+  <!-- 图鉴 -->
+  <section class="screen" id="scr-bestiary">
+    <div class="topbar">
+      <button class="btn icon" data-go="back" aria-label="返回">‹</button>
+      <div class="grow"><h2>怪兽图鉴</h2><div class="sub" id="best-sub"></div></div>
+    </div>
+    <div class="best-body scroll" id="best-body"></div>
+  </section>
+
+  <div id="cutin"><div class="ci-t"></div><div class="ci-s"></div></div>
+  <div class="modal" id="modal"><div class="modal-box" id="modal-box"></div></div>
+  <div id="toast"></div>
+  <input type="file" id="file-input" accept=".txt,.csv,.tsv,.json,text/plain,application/json" hidden>
+</div>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/core/voice.js"></script>
+<script src="js/game/wordbank.js"></script>
+<script src="js/data/words-g5.js"></script>
+<script src="js/data/words-g6.js"></script>
+<script src="js/data/words-jh.js"></script>
+<script src="js/data/words-pet.js"></script>
+<script src="js/data/words-sh.js"></script>
+<script src="js/data/words-ibt.js"></script>
+<script src="js/data/words-gre.js"></script>
+<script src="js/data/scenes.js"></script>
+<script src="js/data/speaking.js"></script>
+<script src="js/data/listening.js"></script>
+<script src="js/render/fx.js"></script>
+<script src="js/render/stage.js"></script>
+<script src="js/render/backgrounds.js"></script>
+<script src="js/render/creatures-core.js"></script>
+<script src="js/render/creatures-a.js"></script>
+<script src="js/render/creatures-b.js"></script>
+<script src="js/render/creatures-c.js"></script>
+<script src="js/render/hero.js"></script>
+<script src="js/render/pictures.js"></script>
+<script src="js/render/spells.js"></script>
+<script src="js/render/ultimates.js"></script>
+<script src="js/game/speakscore.js"></script>
+<script src="js/game/speak.js"></script>
+<script src="js/game/listen.js"></script>
+<script src="js/game/battle.js"></script>
+<script src="js/ui/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
